@@ -1,40 +1,60 @@
 import requests
 
-URL = "https://stltestrepo-production.up.railway.app/api/tests"
+LOGIN_URL = "https://stltestrepo-production.up.railway.app/login"
+API_URL = "https://stltestrepo-production.up.railway.app/api/tests"
 
-token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIyLCJ1c2VybmFtZSI6IlRlc3QxMjM0Iiwicm9sZSI6InVzZXIiLCJpYXQiOjE3ODk2ODc0NzMsImV4cCI6MTc4OTc3Mzg3M30.gxsYb1n_l8L4f1Bo0zig9p9ABkwZbSqDz8pQkmtAJUc"
+USERNAME = "RepoScrape"
+PASSWORD = "RepoScrape"
 
-headers = {
-    "Authorization": f"Bearer {token}"
-}
+def get_api_token():
+    payload = {
+        "username": USERNAME,
+        "password": PASSWORD,
+    }
 
-# Make the GET request to the API endpoint
-response = requests.get(URL, headers=headers)
-if response.status_code == 200:
+    return requests.post(LOGIN_URL, json=payload).json()["token"]
+
+def main():
+    token = get_api_token()
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    # Make the GET request to the API endpoint
+    response = requests.get(API_URL, headers=headers)
+    response.raise_for_status()
     print("Request successful!")
 
-# print(response.json())
-tests = response.json()["tests"]
+    user_input = input("Do you want continue with the download? (y/n): ").strip().lower()
+    if user_input != 'y':
+        print("Download canceled.")
+        return
 
-urls = dict()
-for test in tests:
-    course = test["course"]
-    unit = test["unit"]
-    assessment_type = test["assessment_type"]
-    version = test["version"]
+    tests = response.json()["tests"]
 
-    name = f"{course} {unit} {assessment_type } V{version}"
+    # Create a dictionary to store the URLs
+    urls = dict()
+    for test in tests:
+        course = test["course"]
+        unit = test["unit"]
+        assessment_type = test["assessment_type"]
+        version = test["version"]
 
-    url = test["file_path"]
+        name = f"{course} {unit} {assessment_type } V{version}"
 
-    urls[name] = url
-    # print(f"{course} {unit} {assessment_type } V{version}: {file_path}")
+        url = test["file_path"]
 
-# Download the files
-for name, url in urls.items():
-    response = requests.get(url, stream=True)
-    file_path = f"assessments/{name}.pdf"
-    with open(file_path, "wb") as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
-    print(f"Downloaded {name} to {file_path}")
+        urls[name] = url
+        # print(f"{course} {unit} {assessment_type } V{version}: {file_path}")
+
+    # Download the files
+    for name, url in urls.items():
+        response = requests.get(url, stream=True)
+        file_path = f"assessments/{name}.pdf"
+        with open(file_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        print(f"Downloaded {name} to {file_path}")
+
+if __name__ == "__main__":
+    main()
