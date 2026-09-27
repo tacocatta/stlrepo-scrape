@@ -33,7 +33,7 @@ for test in tests:
 # Download the files
 for name, url in urls.items():
     response = requests.get(url, stream=True)
-    file_path = f"tests/{name}.pdf"
+    file_path = f"assessments/{name}.pdf"
     with open(file_path, "wb") as f:
         for chunk in response.iter_content(chunk_size=8192):
             f.write(chunk)
